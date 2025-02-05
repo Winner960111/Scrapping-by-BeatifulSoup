@@ -1,4 +1,4 @@
-import requests, csv, re, json
+import requests, csv, re, json, uuid
 from bs4 import BeautifulSoup
 
 def get_page_contents(url):
@@ -24,8 +24,9 @@ soup = BeautifulSoup(page_contents, 'html.parser')
 items = soup.select("div.rounded-xl.border.border-gray-a3")
 
 for item in items:
+    record_id = uuid.uuid4()
     data = {
-        'record_id': "",
+        'record_id': record_id,
         'link':"",
         'main_img':"",
         'other_imgs':"",
@@ -35,7 +36,6 @@ for item in items:
         'member_cnt':"",
         'whop_rank' : "",
         'whop_review_ctn' : "",
-        'you_get':"",
         'trading_mentor':"",
         'joined_date':"",
         'x_link':"",
@@ -47,7 +47,6 @@ for item in items:
         'community_link':"",
         'discord_link':"",
         'telegram_link':"",
-        'for_who':"",
         'affiliate_percentage':"",
 
     }
@@ -160,10 +159,23 @@ for item in items:
         pass
     # End review information
 
-    you_gets = item_soup.find_all('span', class_='fui-Text line-clamp-2 fui-r-weight-bold')
+    # Extraction you get information
+
+    you_gets = item_soup.find_all('li', class_='@2xl:p-6 @2xl:rounded-3xl flex items-center gap-4 @2xl:bg-gray-2')
     for you_get in you_gets:
-        you_get_txt = you_get.text.strip()
-        data['you_get'] += you_get_txt + ",   "
+        you_get_info = {
+            'record_id':data['record_id'],
+            'you_get_name':"",
+            'you_get_details':"",
+            'community_name':data['com_name']
+        }
+        you_get_name = you_get.find('span', class_='fui-Text line-clamp-2 fui-r-weight-bold').text.strip()
+        you_get_info['you_get_name'] = you_get_name
+        you_get_details = you_get.find('span', class_='fui-Text text-gray-10 line-clamp-2 text-[15px]').text.strip()
+        you_get_info['you_get_details'] = you_get_details
+        with open("Whop You Get-Grid view.csv", "a", encoding="utf-8", newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(you_get_info.values())
 
     trading_mentor = item_soup.find('span', class_='fui-Text [[data-blend]_&]:mix-blend-plus-lighter fui-r-size-7 fui-r-weight-bold').text.strip()
     data['trading_mentor'] = trading_mentor
@@ -209,15 +221,32 @@ for item in items:
         print(e)
         pass
 
+    # Extraction who is this for
     try:
-        for_who = item_soup.find_all('span', class_='fui-Text w-full min-w-0 text-balance break-words text-center fui-r-weight-bold')
+        for_who = item_soup.find_all('li', class_='flex h-full w-full flex-col items-center justify-start gap-2 rounded-2xl px-6 py-8 bg-gray-2')
         for who in for_who:
-            who_txt = who.text.strip()
-            data['for_who'] += who_txt + ",   "
+            who_info = {
+                'record_id':data['record_id'],
+                'who_name':"",
+                'who_content':"",
+                'community_name':data['com_name']
+            }
+            try:
+                who_info['who_name'] = who.find('span', class_='fui-Text w-full min-w-0 text-balance break-words text-center fui-r-weight-bold').text.strip()
+                who_info['who_content'] = who.find('span', class_='fui-Text text-gray-10 w-full min-w-0 text-pretty break-words text-center fui-r-size-2').text.strip()
+                with open("Whop Who-Grid view.csv", "a", encoding="utf-8", newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(who_info.values())
+            except Exception as e:
+                print(e)
+                pass
+
     except Exception as e:
         print(e)
         pass
 
+    # End Extraction who is this for
+    
     # Extraction FAQs
     
     script_tag = item_soup.find_all('script')
