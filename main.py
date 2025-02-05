@@ -1,4 +1,4 @@
-import requests, csv
+import requests, csv, re, json
 from bs4 import BeautifulSoup
 
 def get_page_contents(url):
@@ -35,6 +35,20 @@ for item in items:
         'member_cnt':"",
         'whop_rank' : "",
         'whop_review_ctn' : "",
+        'you_get':"",
+        'trading_mentor':"",
+        'joined_date':"",
+        'x_link':"",
+        'youtube_link':"",
+        'instagram_link':"",
+        'facebook_link':"",
+        'tiktok_link':"",
+        'linkedin_link':"",
+        'community_link':"",
+        'discord_link':"",
+        'telegram_link':"",
+        'for_who':"",
+        'affiliate_percentage':"",
 
     }
     salary = item.select_one('span.h-max.rounded-full.fui-r-size-1.fui-variant-soft').text.strip()
@@ -146,5 +160,102 @@ for item in items:
         pass
     # End review information
 
+    you_gets = item_soup.find_all('span', class_='fui-Text line-clamp-2 fui-r-weight-bold')
+    for you_get in you_gets:
+        you_get_txt = you_get.text.strip()
+        data['you_get'] += you_get_txt + ",   "
+
+    trading_mentor = item_soup.find('span', class_='fui-Text [[data-blend]_&]:mix-blend-plus-lighter fui-r-size-7 fui-r-weight-bold').text.strip()
+    data['trading_mentor'] = trading_mentor
+
+    joined_date_temp = item_soup.find('span', class_='fui-Text text-gray-10 [[data-blend]_&]:mix-blend-plus-lighter fui-r-size-2').text.strip()
+    joined_date = joined_date_temp.split("Joined")[1].strip()
+    data['joined_date'] = joined_date
+
+    # Extraction social links
+    try:
+        social_links = item_soup.find_all('a', class_='hover:bg-gray-a3 flex items-center justify-between rounded-full p-2 [[data-blend]_&]:mix-blend-plus-lighter')
+        for link in social_links:
+            social_link = link.get('href')
+            social_name = link.get('aria-label').split("/")[0]
+            match social_name:
+                case "x.com":
+                    data['x_link'] = social_link
+                case "youtube.com":
+                    data['youtube_link'] = social_link
+                case "instagram.com":
+                    data['instagram_link'] = social_link
+                case "facebook.com":
+                    data['facebook_link'] = social_link
+                case "tiktok.com":
+                    data['tiktok_link'] = social_link
+                case "linkedin.com":
+                    data['linkedin_link'] = social_link
+                case "discord.com":
+                    data['discord_link'] = social_link
+                case "telegram.org":
+                    data['telegram_link'] = social_link
+                case _:
+                    data['community_link'] = social_link
+    except Exception as e:
+        print(e)
+        pass
+    # End Extraction social links
+
+    try:
+        bio = item_soup.find('p', class_='fui-Text max-w-[478px] text-pretty text-center')
+        data['bio'] = bio
+    except Exception as e:
+        print(e)
+        pass
+
+    try:
+        for_who = item_soup.find_all('span', class_='fui-Text w-full min-w-0 text-balance break-words text-center fui-r-weight-bold')
+        for who in for_who:
+            who_txt = who.text.strip()
+            data['for_who'] += who_txt + ",   "
+    except Exception as e:
+        print(e)
+        pass
+
+    # Extraction FAQs
     
-    # print(f"{whop_header},    {whop_subheader}")
+    script_tag = item_soup.find_all('script')
+    for script in script_tag:
+        script_text = script.text.strip()
+        if 'self.__next_f.push([1,"11:[[' in script_text:
+            script_text = script_text.replace('\"', "").replace("\\", "")
+            pattern = r'faq:\[(.*?)\]'
+            match = re.search(pattern, script_text, re.DOTALL)
+            # Extract questions
+            questions = re.findall(r'question:(.*?),', match.group(1))
+
+            # Extract answers
+            answers = re.findall(r'answer:(.*?)[,}]', match.group(1))
+
+            # Print Q&A pairs
+            for q, a in zip(questions, answers):
+                faq_info = {
+                    'record_id':data['record_id'],
+                    'community_name':data['com_name'],
+                    'question':"",
+                    'answer':"",
+                }
+                faq_info['question'] = q.strip()
+                faq_info['answer'] = a.strip()
+                with open("Whop FAQs-Grid view.csv", "a", encoding="utf-8", newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(faq_info.values())
+
+    # End Extraction FAQs
+    
+    try:
+        affiliate_percentage = item_soup.find('span', class_='bg-panel-solid border-gray-a3 dark:bg-gray-a3 dark:border-gray-a5 text-success-11 -mt-[13px] flex h-10 origin-center -rotate-[2deg] items-center rounded-xl border px-3 font-[600] dark:border dark:outline dark:outline-[0.5px] dark:outline-black dark:backdrop-blur-md dark:backdrop-saturate-150').text.strip()
+    except Exception as e:
+        print(e)
+        pass
+
+    data['affiliate_percentage'] = affiliate_percentage
+    
+
+    
