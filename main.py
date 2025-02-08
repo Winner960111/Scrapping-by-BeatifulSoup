@@ -10,16 +10,16 @@ def get_page_contents(url):
         return page.text
     return None
 
-for i in range(0, 972):
+for i in range(0, 971):
         
-    url = f"https://whop.com/discover/c/trading/p/0/" # Replace with the URL you want to scrape
+    url = f"https://whop.com/discover/c/trading/p/{i}/" # Replace with the URL you want to scrape
     page_contents = get_page_contents(url)
     if page_contents is None:
         print("Failed to retrieve page content.")
         exit()
 
     soup = BeautifulSoup(page_contents, 'html.parser')
-    # with open("output.html", "w", encoding="utf-8") as f:
+    # with open("output.html", "w", encoding="utf-8-sig") as f:
     #     f.write(soup.prettify())
     items = soup.select("div.rounded-xl.border.border-gray-a3")
 
@@ -67,9 +67,9 @@ for i in range(0, 972):
             print("Failed to retrieve page content.")
             exit()
         item_soup = BeautifulSoup(item_page_contents, 'html.parser')
-        # with open("item.html", "w", encoding="utf-8") as f:
+        # with open("item.html", "w", encoding="utf-8-sig") as f:
         #     f.write(soup.prettify())
-        imgs = item_soup.select("img.h-full.w-full.object-contain.object-center")
+        imgs = item_soup.find_all('img', class_='h-full w-full object-contain object-center')
         main_img_flag = False
         for img in imgs:
             if main_img_flag:
@@ -80,27 +80,40 @@ for i in range(0, 972):
 
         com_name = item_soup.find('h1', class_='fui-Heading font-[600] fui-r-size-3 fui-r-weight-bold').text.strip()
         data['com_name'] = com_name
-        whop_header = item_soup.find('h2', class_='fui-Heading mt-2 max-w-[380px] text-balance text-center fui-r-size-7 fui-r-weight-bold').text.strip()
-        data['whop_header'] = whop_header
-        whop_subheader = item_soup.find('p', class_='fui-Text mt-2 max-w-[380px] text-pretty text-center fui-r-size-3 fui-r-weight-regular').text.strip()
-        data['whop_subheader'] = whop_subheader
+        try:
+            whop_header = item_soup.find('h2', class_='fui-Heading mt-2 max-w-[380px] text-balance text-center fui-r-size-7 fui-r-weight-bold').text.strip()
+            data['whop_header'] = whop_header
+            whop_subheader = item_soup.find('p', class_='fui-Text mt-2 max-w-[380px] text-pretty text-center fui-r-size-3 fui-r-weight-regular').text.strip()
+            data['whop_subheader'] = whop_subheader
+        except Exception as e:
+            print(f"header or subheader--->: {e}")
+            print(data['link'])
+            print("\n")
+            pass
 
         try:
             member_cnt = item_soup.find('span', class_='fui-Text fui-r-size-3 fui-r-weight-bold').text.strip()
-        except:
-            member_cnt = ""
-        data['member_cnt'] = member_cnt
+            if member_cnt:
+                member_cnt = member_cnt.split(" ")[1]  
+                data['member_cnt'] = member_cnt
+        except Exception as e:
+            print(f"member count-->: {e}")
+            print(data['link'])
+            print("\n")
+            pass
 
         try:
             rank_review = item_soup.find('span', class_='fui-Text text-amber-a10 fui-r-size-1 fui-r-weight-medium').text.strip()
             whop_rank = rank_review.split(" ")[0]
             whop_review_ctn = rank_review.split(" ")[2].split("(")[1].split(")")[0]
-        except:
-            whop_rank = ""
-            whop_review_ctn = ""
+            data['whop_rank'] = whop_rank
+            data['whop_review_ctn'] = whop_review_ctn
+        except Exception as e:
+            print(f"rank or review ctn---->: {e}")
+            print(data['link'])
+            print("\n")
+            pass
 
-        data['whop_rank'] = whop_rank
-        data['whop_review_ctn'] = whop_review_ctn
 
         # Extraction offer information
         try:
@@ -121,52 +134,71 @@ for i in range(0, 972):
                 try:
                     offer_price = offer.find('a').find('div', class_='flex flex-col').find('span', class_='flex flex-wrap items-center gap-1').find('span').text.strip()
                     offer_info['offer_price'] = offer_price
-                except:
+                except Exception as e:
+                    print(f"offer price--->: {e}")
+                    print(data['link'])
+                    print("\n")
                     pass
                 try:
                     offer_details = offer.find('a').find('ul').find_all('li')
                     for detail in offer_details:
                         offer_detail = detail.find('span', class_='fui-Text min-w-0 break-words fui-r-size-3 fui-r-weight-medium').text.strip()
                         offer_info['offer_details'] += "-" + offer_detail + ",   "
-                except:
+                except Exception as e:
+                    print(f"offer detail--->: {e}")
+                    print(data['link'])
+                    print("\n")
                     pass
-                with open("Whop Offers-Grid view.csv", "a", encoding="utf-8", newline='') as csvfile:
+                with open("Whop Offers.csv", "a", encoding="utf-8-sig", newline='') as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerow(offer_info.values())
         except Exception as e:
-            print(e)
+            print(f"Offer item --->: {e}")
+            print(data['link'])
+            print("\n")
             pass
         
         # End offer information
 
         # Extraction Review information
         try:
-            reviews = item_soup.find('ul', class_='mt-[22px] flex flex-col gap-4 @2xl:grid @2xl:mt-6 grid-cols-2').find_all('li')
-            for review in reviews:
-                review_info = {
-                    'record_id':data['review_id'],
-                    'review_name':"",
-                    'review':"",
-                    'review_date':"",
-                    'community_name':data['com_name']
-                }
-                try:
-                    review_name = review.find('span', class_='fui-Text line-clamp-1 cursor-pointer text-left fui-r-size-3 fui-r-weight-medium').text.strip()
-                    review_info['review_name'] = review_name
-                except:
-                    pass
-
-                review_txt = review.find('p', class_='fui-Text whitespace-pre-line fui-r-size-3 fui-r-weight-regular').text.strip()
-                review_info['review'] = review_txt
-                review_date = review.find('span', class_= 'fui-Text fui-r-size-2').text.strip()
-                review_info['review_date'] = review_date
-
-                with open("Whop Reviews-Grid view.csv", "a", encoding="utf-8", newline='') as csvfile:
-                    writer = csv.writer(csvfile)
-                    writer.writerow(review_info.values())
+            script_tag = item_soup.find_all('script')
+            for script in script_tag:
+                script_text = script.text.strip()
+                if 'self.__next_f.push([1,"11:[[' in script_text:
+                    script_text = script_text.replace('\"', "").replace("\\", "")
+                    reviews_pattern = r'featuredReviews:\[.*?\}]'
+                    match = re.search(reviews_pattern, script_text, re.DOTALL)
+                    # Extract individual review data
+                    if match:
+                        reviews = match.group(0)
+                        users = re.findall(r'name:(.*?),', match.group(0))
+                        review = re.findall(r'description:(.*?),joinedAt', match.group(0))
+                        # Print Q&A pairs
+                        dates_ul = item_soup.find('ul', class_='mt-[22px] flex flex-col gap-4 @2xl:grid @2xl:mt-6 grid-cols-2')
+                        dates = dates_ul.find_all('span', class_='fui-Text fui-r-size-2')
+                        for u, r, d in zip(users, review, dates):
+                            review_info = {
+                                'record_id':data['review_id'],
+                                'review_name':"",
+                                'review':"",
+                                'review_date':"",
+                                'community_name':data['com_name']
+                            }
+                            d1 = d.text.strip().split(" ")[1]
+                            d2 = d.text.strip().split(" ")[2]
+                            d3 = d.text.strip().split(" ")[3].split(",")[0]
+                            review_info['review_date'] = d1 + " " + d2 + " " + d3
+                            review_info['review_name'] = u.strip()
+                            review_info['review'] = r.strip()
+                            with open("Whop Reviews.csv", "a", encoding="utf-8-sig", newline='') as csvfile:
+                                writer = csv.writer(csvfile)
+                                writer.writerow(review_info.values())
 
         except Exception as e:
-            print(e)
+            print(f"Script tag for review--->: {e}")
+            print(data['link'])
+            print("\n")
             pass
         # End review information
 
@@ -180,14 +212,21 @@ for i in range(0, 972):
                 'you_get_details':"",
                 'community_name':data['com_name']
             }
-            you_get_name = you_get.find('span', class_='fui-Text line-clamp-2 fui-r-weight-bold').text.strip()
-            you_get_info['you_get_name'] = you_get_name
-            you_get_details = you_get.find('span', class_='fui-Text text-gray-10 line-clamp-2 text-[15px]').text.strip()
-            you_get_info['you_get_details'] = you_get_details
-            with open("Whop You Get-Grid view.csv", "a", encoding="utf-8", newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(you_get_info.values())
+            try:
+                you_get_name = you_get.find('span', class_='fui-Text line-clamp-2 fui-r-weight-bold').text.strip()
+                you_get_info['you_get_name'] = you_get_name
+                you_get_details = you_get.find('span', class_='fui-Text text-gray-10 line-clamp-2 text-[15px]').text.strip()
+                you_get_info['you_get_details'] = you_get_details
+                with open("Whop you-get.csv", "a", encoding="utf-8-sig", newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(you_get_info.values())
+            except Exception as e:
+                print(f"you_Get-->: {e}")
+                print(data['link'])
+                print("\n")
+                pass
 
+        # End you get information
         trading_mentor = item_soup.find('span', class_='fui-Text [[data-blend]_&]:mix-blend-plus-lighter fui-r-size-7 fui-r-weight-bold').text.strip()
         data['trading_mentor'] = trading_mentor
 
@@ -221,15 +260,20 @@ for i in range(0, 972):
                     case _:
                         data['community_link'] = social_link
         except Exception as e:
-            print(e)
+            print(f"Social Link--->: {e}")
+            print(data['link'])
+            print("\n")
             pass
         # End Extraction social links
 
         try:
-            bio = item_soup.find('p', class_='fui-Text max-w-[478px] text-pretty text-center')
-            data['bio'] = bio
+            bio = item_soup.select('p.fui-Text.text-pretty.text-center.fui-r-weight-bold')
+            if bio:
+                data['bio'] = bio[0].text.strip()
         except Exception as e:
-            print(e)
+            print(f"bio---->: {e}")
+            print(data['link'])
+            print("\n")
             pass
 
         # Extraction who is this for
@@ -245,15 +289,19 @@ for i in range(0, 972):
                 try:
                     who_info['who_name'] = who.find('span', class_='fui-Text w-full min-w-0 text-balance break-words text-center fui-r-weight-bold').text.strip()
                     who_info['who_content'] = who.find('span', class_='fui-Text text-gray-10 w-full min-w-0 text-pretty break-words text-center fui-r-size-2').text.strip()
-                    with open("Whop Who-Grid view.csv", "a", encoding="utf-8", newline='') as csvfile:
+                    with open("Whop who.csv", "a", encoding="utf-8-sig", newline='') as csvfile:
                         writer = csv.writer(csvfile)
                         writer.writerow(who_info.values())
                 except Exception as e:
-                    print(e)
+                    print(f"who info--->: {e}")
+                    print(data['link'])
+                    print("\n")
                     pass
 
         except Exception as e:
-            print(e)
+            print(f"who item---->: {e}")
+            print(data['link'])
+            print("\n")
             pass
 
         # End Extraction who is this for
@@ -283,7 +331,7 @@ for i in range(0, 972):
                     }
                     faq_info['question'] = q.strip()
                     faq_info['answer'] = a.strip()
-                    with open("Whop FAQs-Grid view.csv", "a", encoding="utf-8", newline='') as csvfile:
+                    with open("Whop FAQs.csv", "a", encoding="utf-8-sig", newline='') as csvfile:
                         writer = csv.writer(csvfile)
                         writer.writerow(faq_info.values())
 
@@ -292,14 +340,16 @@ for i in range(0, 972):
         try:
             affiliate_percentage = item_soup.find('span', class_='bg-panel-solid border-gray-a3 dark:bg-gray-a3 dark:border-gray-a5 text-success-11 -mt-[13px] flex h-10 origin-center -rotate-[2deg] items-center rounded-xl border px-3 font-[600] dark:border dark:outline dark:outline-[0.5px] dark:outline-black dark:backdrop-blur-md dark:backdrop-saturate-150').text.strip()
         except Exception as e:
-            print(e)
+            print(f"percent---->: {e}")
+            print(data['link'])
+            print("\n")
             pass
 
         data['affiliate_percentage'] = affiliate_percentage
         
-        with open('Whop Table.csv', 'a', encoding='utf-8', newline='') as csvfile:
+        with open('Whop Table.csv', 'a', encoding='utf-8-sig', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(data.values())
 
-
+    print(f"********************Scraped {i+1} pages**************************")
         
