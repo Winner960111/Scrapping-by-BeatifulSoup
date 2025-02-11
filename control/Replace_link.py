@@ -1,9 +1,12 @@
 from pyairtable import Table
 import pandas as pd
 
-# Airtable API credentials
-BASE_ID = "appCVWDjcEuEWTSL2"
-API_KEY = "patlOLIOwYhjKefIw.9388dba43dbe9c56de65633ae980555bc67e17537fd5eb0717ce9ca0f55b68b2"
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
+BASE_ID = os.getenv("BASE_ID")
+API_KEY = os.getenv("API_KEY") 
 
 # Table names
 TABLE1_NAME = "tbllSCkJsMFRLKBl5"  # Original "Community Name" table

@@ -4,6 +4,10 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
 def get_page_contents(url):
     headers = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
@@ -16,9 +20,9 @@ def get_page_contents(url):
         return page.text
     return None
 
-# Airtable API credentials
-BASE_ID = "appCVWDjcEuEWTSL2"
-API_KEY = "patlOLIOwYhjKefIw.9388dba43dbe9c56de65633ae980555bc67e17537fd5eb0717ce9ca0f55b68b2"
+
+BASE_ID = os.getenv("BASE_ID")
+API_KEY = os.getenv("API_KEY") 
 
 # Table names
 TABLE1_NAME = "tbllSCkJsMFRLKBl5"  # Original "Community Name" table
