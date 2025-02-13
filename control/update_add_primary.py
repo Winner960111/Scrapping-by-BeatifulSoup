@@ -28,7 +28,12 @@ try:
         
         if flag == True:
             continue
-            
+        
+        if pd.isna(db.iloc[i]['Whop Link']):
+            item21 = None
+        else:
+            item21 = db.iloc[i]['Whop Link']
+
         if pd.isna(db.iloc[i]['Main Whop Page Image']):
             item1 = None
         else:
@@ -116,6 +121,7 @@ try:
             item20 = db.iloc[i]['Affiliate Percentage']
 
         new_record_data = {
+
             "Main Whop Page Image": item1,
             "Other Page Images": item2,
             "Whop Page Header Text": item3,
@@ -135,7 +141,8 @@ try:
             "Website URL": item17,
             "# of Community Members": item18,
             "Joined Date": str(item19),
-            "Affiliate Percentage": item20
+            "Affiliate Percentage": item20,
+            "Whop Link": item21
         }
 
         try:
@@ -143,7 +150,8 @@ try:
             print(f"Record updated successfully")
         except Exception as e:
             print(f"Error creating record: {e}")
-        break
+            break
+        print(f"---------------{i}---------------")
 
 except Exception as e:
     print(f"Error fetching data from Table1: {e}")
